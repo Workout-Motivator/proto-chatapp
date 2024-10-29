@@ -11,7 +11,7 @@ import {
   setDoc,
   doc,
 } from 'firebase/firestore';
-import { signInAnonymously } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 import {
   AppBar,
@@ -25,15 +25,19 @@ import {
   ListItem,
   ListItemText,
   Box,
+  Button,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+
+import Login from './Login';
 
 interface ChatMessage {
   id?: string;
   text: string;
   uid: string;
   createdAt: any;
+  displayName?: string; // Ensure this property is included
 }
 
 const theme = createTheme({
@@ -50,52 +54,49 @@ const theme = createTheme({
 const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState<string>('');
+  const [user, setUser] = useState(auth.currentUser);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Sign in anonymously if not already signed in
-    if (!auth.currentUser) {
-      signInAnonymously(auth)
-        .then(() => {
-          console.log('Signed in anonymously');
-          console.log('Current User UID:', auth.currentUser?.uid);
-          // After signing in, request notification permission
-          requestPermission();
-        })
-        .catch((error) => {
-          console.error('Anonymous sign-in failed:', error);
-        });
-    } else {
-      // If already signed in, request notification permission
-      requestPermission();
-    }
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        console.log('User is signed in:', currentUser.uid);
+        await requestPermission(currentUser);
+      } else {
+        console.log('No user is signed in.');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const requestPermission = async () => {
+  const requestPermission = async (currentUser: any) => {
     try {
       console.log('Requesting notification permission...');
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         console.log('Notification permission granted.');
-        // Get the FCM token
         const token = await getToken(messaging, {
-          vapidKey: 'BHgZSplK9WnPa2v6BON54swvWHqNDF1K23miMqNVcCgQhdQBM7pQBGgw68suGKp4Iru-VuaTm0e_SRVkfaTvK2M', // Replace with your actual public VAPID key
+          vapidKey: 'BHgZSplK9WnPa2v6BON54swvWHqNDF1K23miMqNVcCgQhdQBM7pQBGgw68suGKp4Iru-VuaTm0e_SRVkfaTvK2M',
         });
         if (token) {
           console.log('FCM Token:', token);
           // Save the token to Firestore
-          await setDoc(doc(db, 'fcmTokens', token), {
-            uid: auth.currentUser?.uid,
+          await setDoc(doc(db, 'fcmTokens', currentUser.uid), {
             token,
           });
         } else {
           console.log('No registration token available.');
         }
       } else {
-        console.log('Unable to get permission to notify.');
+        console.log('Notification permission denied');
       }
     } catch (error) {
-      console.error('An error occurred while retrieving token.', error);
+      console.error('An error occurred while retrieving token:', error);
     }
   };
 
@@ -145,6 +146,7 @@ const App: React.FC = () => {
           text: input,
           createdAt: serverTimestamp(),
           uid: auth.currentUser.uid,
+          displayName: auth.currentUser.displayName || 'Anonymous',
         });
         setInput('');
         scrollToBottom();
@@ -154,12 +156,38 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      console.log('User signed out');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
+
+  if (!user) {
+    // If the user is not authenticated, show the Login component
+    return <Login />;
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <Box display="flex" flexDirection="column" height="100%">
         <AppBar position="static">
           <Toolbar>
-            <Typography variant="h6">Chat App</Typography>
+            <Typography variant="h6" style={{ flexGrow: 1 }}>
+              Chat App
+            </Typography>
+            {user && (
+              <>
+                <Typography variant="subtitle1" style={{ marginRight: '16px' }}>
+                  {user.displayName || 'Anonymous'}
+                </Typography>
+                <Button color="inherit" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </>
+            )}
           </Toolbar>
         </AppBar>
 
@@ -186,7 +214,8 @@ const App: React.FC = () => {
                   key={msg.id}
                   style={{
                     display: 'flex',
-                    justifyContent:
+                    flexDirection: 'column',
+                    alignItems:
                       msg.uid === auth.currentUser?.uid
                         ? 'flex-end'
                         : 'flex-start',
@@ -202,9 +231,7 @@ const App: React.FC = () => {
                   >
                     <ListItemText
                       primary={msg.text}
-                      secondary={
-                        msg.uid === auth.currentUser?.uid ? 'You' : 'User'
-                      }
+                      secondary={msg.displayName || 'Anonymous'}
                     />
                   </Box>
                 </ListItem>

@@ -2,7 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging } from 'firebase/messaging';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, signInAnonymously, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { getAuth, browserLocalPersistence, setPersistence, GoogleAuthProvider } from 'firebase/auth';
 
 
 // Add SDKs for Firebase products that you want to use
@@ -32,14 +32,11 @@ const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
     console.log('Authentication persistence set to local.');
-    // Now sign in anonymously
-    return signInAnonymously(auth);
-  })
-  .then(() => {
-    console.log('Signed in anonymously');
   })
   .catch((error) => {
-    console.error('Anonymous sign-in failed:', error);
+    console.error('Error setting persistence:', error);
   });
 
-export { messaging, db, auth };
+const googleProvider = new GoogleAuthProvider();
+
+export { messaging, db, auth, googleProvider };
