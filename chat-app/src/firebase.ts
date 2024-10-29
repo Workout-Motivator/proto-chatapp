@@ -11,14 +11,14 @@ import { getAuth, browserLocalPersistence, setPersistence, GoogleAuthProvider } 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "AIzaSyBYbg0uesOqy7Rd1kYE3x6v8KYHi9XF0TU",
-    authDomain: "chat-app-1fec7.firebaseapp.com",
-    projectId: "chat-app-1fec7",
-    storageBucket: "chat-app-1fec7.appspot.com",
-    messagingSenderId: "597651943419",
-    appId: "1:597651943419:web:1717616f89a1765759655e",
-    measurementId: "G-XX0P95KB75"
-  };
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
