@@ -31,6 +31,7 @@ const auth = getAuth(app);
 // Set authentication persistence
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
+    console.log('Authentication persistence set to local.');
     // Now sign in anonymously
     return signInAnonymously(auth);
   })
