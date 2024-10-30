@@ -1,7 +1,6 @@
 import React, { useState, useEffect, FormEvent, useRef } from 'react';
 import { messaging, db, auth } from './firebase';
 import { getToken, onMessage } from 'firebase/messaging';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import {
   collection,
   addDoc,
@@ -57,7 +56,6 @@ const App: React.FC = () => {
   const [input, setInput] = useState<string>('');
   const [user, setUser] = useState(auth.currentUser);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
 
   useEffect(() => {
     // Listen for authentication state changes
@@ -90,14 +88,6 @@ const App: React.FC = () => {
           // Save the token to Firestore
           await setDoc(doc(db, 'fcmTokens', currentUser.uid), {
             token,
-          });
-          // Subscribe the token to a topic via your backend
-          await fetch(`${BACKEND_URL}/subscribe`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token }),
           });
         } else {
           console.log('No registration token available.');
